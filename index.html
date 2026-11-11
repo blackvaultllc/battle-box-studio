@@ -1,0 +1,1218 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="data:," />
+    <title>Battle Box Studio</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+    <style>
+      button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2.25rem; }
+
+      :root{
+        --box-hi:#0a63e8;
+        --box-mid:#0033a0;
+        --box-lo:#00043c;
+        --box-edge:#c9ced6;
+        --box-edge-dark:#5a6068;
+        --hud-font: clamp(15px, 2.2vw, 21px);
+      }
+      * { box-sizing: border-box; }
+      html, body { margin:0; padding:0; }
+      body{
+        background:#000;
+        color:#f2f4f8;
+        font-family:"Trebuchet MS","Segoe UI",Verdana,system-ui,sans-serif;
+        -webkit-font-smoothing:antialiased;
+      }
+      .wrap{ max-width:1060px; margin:0 auto; padding:18px 14px 48px; }
+
+      /* ---------- Cover ---------- */
+      .cover{
+        margin:2px 0 14px; border-radius:14px; overflow:hidden; position:relative;
+        background:linear-gradient(100deg,#ff5d8f 0%,#ff9e2c 28%,#ffd83d 48%,#3ddc84 70%,#2fb9ff 100%);
+        padding:3px;
+      }
+      .cover-inner{
+        background:linear-gradient(120deg,#14103a 0%,#24105e 55%,#0b2a5e 100%);
+        border-radius:11px; padding:18px 20px 16px; position:relative; overflow:hidden;
+      }
+      .cover-inner::after{ content:"✦ ✧ ★ ✦"; position:absolute; right:16px; top:10px; color:#ffd83d; letter-spacing:.5em; font-size:14px; opacity:.9; }
+      .cover h1{ font-size:clamp(26px,4.6vw,40px); margin:0 0 4px; letter-spacing:.01em; line-height:1; color:#fff; text-shadow:0 3px 0 rgba(0,0,0,.35); }
+      .cover h1 span{ color:#ffd83d; }
+      .cover .tagline{ margin:0 0 6px; font-weight:800; color:#7ef0c1; font-size:clamp(14px,2.4vw,18px); }
+      .cover p{ margin:0; color:#dbe7ff; font-size:14.5px; line-height:1.5; max-width:68ch; }
+      .cover p strong{ color:#fff; }
+      .cover .badges{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+      .cover .badge{ font-size:12px; font-weight:800; letter-spacing:.04em; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.35); color:#fff; padding:4px 10px; border-radius:999px; }
+
+      /* ---------- Stage ---------- */
+      .stage{
+        position:relative;
+        border-radius:10px;
+        overflow:hidden;
+        aspect-ratio: 16 / 10.5;
+        min-height:600px;
+        background:linear-gradient(180deg,#2fb9ff 0%,#7fd4ff 22%,#c9f2ff 38%,#ffe9a8 47%,#8ee06a 48%,#58b93c 100%);
+        box-shadow:0 0 0 1px #23262b, 0 18px 50px rgba(0,0,0,.8);
+        isolation:isolate;
+      }
+      .sky-decor{ position:absolute; inset:0 0 52% 0; z-index:0; pointer-events:none; overflow:hidden; }
+      .rainbow{ position:absolute; width:420px; height:420px; border-radius:50%; right:-90px; top:-250px; border:22px solid rgba(255,93,143,.55); box-shadow:0 0 0 20px rgba(255,158,44,.45),0 0 0 40px rgba(255,216,61,.45),0 0 0 60px rgba(61,220,132,.4),0 0 0 80px rgba(47,185,255,.35); }
+      .cloud{ position:absolute; background:#fff; border-radius:999px; opacity:.95; }
+      .cloud::before,.cloud::after{ content:""; position:absolute; background:#fff; border-radius:50%; }
+      .cloud.c1{ width:110px; height:30px; left:6%; top:16%; } .cloud.c1::before{ width:44px;height:44px;left:14px;top:-20px; } .cloud.c1::after{ width:32px;height:32px;right:16px;top:-13px; }
+      .cloud.c2{ width:84px; height:24px; left:44%; top:8%; transform:scale(.8); } .cloud.c2::before{ width:36px;height:36px;left:10px;top:-16px; } .cloud.c2::after{ width:26px;height:26px;right:12px;top:-10px; }
+      .island{ position:absolute; width:86px; height:18px; background:linear-gradient(180deg,#6ee86e,#2f9e44); border-radius:50%; box-shadow:0 14px 0 -6px #8a5a2a, 0 22px 18px rgba(0,0,0,.18); animation:floaty 3.6s ease-in-out infinite alternate; }
+      .island.i1{ left:12%; top:54%; } .island.i2{ right:18%; top:38%; width:62px; animation-delay:.7s; } .island.i3{ left:52%; top:62%; width:52px; animation-delay:1.2s; }
+      @keyframes floaty{ from{ transform:translateY(0);} to{ transform:translateY(-8px);} }
+      .floor{ position:absolute; left:0; right:0; bottom:0; height:52%; z-index:0; pointer-events:none;
+        background:
+          repeating-linear-gradient(90deg, rgba(255,255,255,.20) 0 2px, transparent 2px 72px),
+          repeating-linear-gradient(0deg, rgba(0,60,0,.18) 0 2px, transparent 2px 34px),
+          linear-gradient(180deg,#79d95a 0%,#4cb944 34%,#2f8f2e 68%,#1f6b24 100%);
+      }
+      .floor::after{ content:""; position:absolute; inset:0; background:repeating-linear-gradient(90deg, rgba(255,235,120,.14) 0 36px, transparent 36px 72px); }
+      .sparkle{ position:absolute; color:#fff; font-size:16px; z-index:1; pointer-events:none; animation:twinkle 1.8s ease-in-out infinite alternate; text-shadow:0 0 8px #ffd83d; }
+      @keyframes twinkle{ from{ opacity:.25; transform:scale(.7) rotate(0deg);} to{ opacity:1; transform:scale(1.2) rotate(20deg);} }
+      /* soft rolling-hill shading */
+      .stage::before{
+        content:""; position:absolute; inset:0;
+        background:
+          radial-gradient(120% 60% at 20% 30%, rgba(255,255,255,.10), transparent 55%),
+          radial-gradient(90% 55% at 78% 34%, rgba(0,0,0,.18), transparent 60%),
+          radial-gradient(70% 40% at 50% 88%, rgba(0,0,0,.25), transparent 70%);
+        pointer-events:none;
+      }
+      .stage.shake{ animation:shake .38s linear; }
+      @keyframes shake{
+        0%,100%{ transform:translate(0,0); } 20%{ transform:translate(-6px,2px); }
+        40%{ transform:translate(5px,-3px); } 60%{ transform:translate(-4px,-2px); } 80%{ transform:translate(4px,2px); }
+      }
+
+      /* short, one-line message banner — never a wall of text */
+      .banner{
+        position:absolute; top:14px; left:50%; transform:translateX(-50%);
+        z-index:6; max-width:92%;
+        padding:10px 26px;
+        font-size:clamp(17px,3vw,25px); font-weight:700; letter-spacing:.02em; text-align:center;
+        color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.45);
+        background:linear-gradient(180deg,#e0559a,#b01e63);
+        border:3px solid var(--box-edge); border-radius:6px;
+        box-shadow:0 0 0 2px var(--box-edge-dark), 0 8px 24px rgba(0,0,0,.5);
+        opacity:0; pointer-events:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+        transition:opacity .18s ease;
+      }
+      .banner.show{ opacity:1; }
+      .banner.blue{ background:linear-gradient(180deg,var(--box-hi),var(--box-lo)); }
+      .banner.green{ background:linear-gradient(180deg,#3fae6a,#176b38); }
+
+      /* combatants */
+      .field{ position:absolute; inset:0; z-index:2; }
+      .actor{ position:absolute; text-align:center; transition:transform .18s ease; z-index:2; }
+      .actor svg{ display:block; margin:0 auto; filter:drop-shadow(0 10px 6px rgba(0,0,0,.45)); shape-rendering:crispEdges; animation:idleBob 1.7s ease-in-out infinite; }
+      .actor.hero-2 svg{ animation-delay:.35s; } .actor.hero-3 svg{ animation-delay:.7s; }
+      .actor.monster svg{ animation:monsterSway 2.2s ease-in-out infinite; }
+      @keyframes idleBob{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-6px);} }
+      @keyframes monsterSway{ 0%,100%{ transform:translateY(0) rotate(-1.2deg);} 50%{ transform:translateY(-4px) rotate(1.2deg) scale(1.02);} }
+      .actor.limit-ready svg{ filter:drop-shadow(0 0 14px #ffd83d) drop-shadow(0 0 26px #ff5d8f); animation:idleBob .7s ease-in-out infinite; }
+      .actor.enter{ animation:monsterIn .55s cubic-bezier(.2,1.4,.4,1) both; }
+      @keyframes monsterIn{ from{ transform:translateX(-70px) scale(.6); opacity:0;} to{ transform:translateX(0) scale(1); opacity:1;} }
+      .slash{ position:absolute; width:90px; height:90px; z-index:7; pointer-events:none; background:linear-gradient(135deg,transparent 42%,#fff 48%,#ffd83d 52%,transparent 60%); clip-path:polygon(0 100%,100% 0,88% 0,0 88%); animation:slashAnim .32s ease-out forwards; filter:drop-shadow(0 0 10px #ffd83d); }
+      @keyframes slashAnim{ from{ opacity:0; transform:scale(.5) rotate(-14deg);} 40%{ opacity:1;} to{ opacity:0; transform:scale(1.25) rotate(8deg);} }
+      .burst{ position:absolute; z-index:7; width:10px; height:10px; pointer-events:none; }
+      .burst i{ position:absolute; width:8px; height:8px; border-radius:50%; background:#7fd4ff; box-shadow:0 0 10px #2fb9ff; animation:burstFly .55s ease-out forwards; }
+      @keyframes burstFly{ to{ transform:translate(var(--dx),var(--dy)) scale(.3); opacity:0; } }
+      .turn-marker{ position:absolute; left:50%; top:-34px; transform:translateX(-50%); background:#ffd83d; color:#201400; font-size:11px; font-weight:900; letter-spacing:.06em; padding:4px 8px; border-radius:999px; border:2px solid #fff; box-shadow:0 4px 12px rgba(0,0,0,.35); white-space:nowrap; animation:bob .6s ease-in-out infinite alternate; z-index:3; }
+      .poison-note{ display:none; margin:10px 10px 0; padding:10px 14px; border-radius:8px; background:#2a0a3a; border:1.5px solid #b26bff; color:#f3e8ff; font-size:14.5px; line-height:1.5; }
+      .poison-note.show{ display:block; } .poison-note b{ color:#ffd83d; }
+      .actor .shadow{ width:70%; height:10px; margin:2px auto 0; border-radius:50%; background:rgba(0,0,0,.35); }
+      .actor.monster{ left:9%; bottom:36%; width:clamp(92px,17vw,168px); }
+      .actor.hero-main{ right:23%; bottom:35%; width:clamp(56px,9.5vw,96px); }
+      .actor.hero-2{ right:12.5%; bottom:40%; width:clamp(50px,8.5vw,86px); }
+      .actor.hero-3{ right:3.5%; bottom:33%; width:clamp(50px,8.5vw,86px); }
+      .actor.lunge-r{ transform:translateX(-46px); }
+      .actor.lunge-l{ transform:translateX(46px); }
+      .actor.hit{ animation:hitflash .3s steps(2) 2; }
+      @keyframes hitflash{ 50%{ filter:brightness(2.4) saturate(.2); } }
+      .actor.down{ animation:dissolve .8s ease forwards; }
+      @keyframes dissolve{ 0%{ opacity:1; transform:translateY(0) scale(1);} 40%{ opacity:.7; transform:translateY(6px) scale(.92); filter:brightness(2);} 100%{ opacity:0; transform:translateY(18px) scale(.75); filter:blur(2px);} }
+      .actor.hero-main.down{ animation:heroFall .6s ease forwards; }
+      @keyframes heroFall{ to{ transform:rotate(72deg) translateX(12px); opacity:.55; } }
+      .target-arrow{
+        position:absolute; left:50%; top:-30px; transform:translateX(-50%);
+        width:0; height:0; border-left:11px solid transparent; border-right:11px solid transparent;
+        border-top:16px solid #ffd83d; animation:bob .7s ease-in-out infinite alternate;
+      }
+      @keyframes bob{ from{ margin-top:0; } to{ margin-top:6px; } }
+
+      .monster-plate{
+        position:absolute; left:6%; top:12px; z-index:5;
+        padding:8px 12px; min-width:170px;
+        font-size:14px; font-weight:700;
+      }
+      .monster-plate .mname{ display:flex; justify-content:space-between; gap:14px; }
+      .monster-plate .status-tag{ color:#c9ff7a; }
+      .plate-bar{ height:9px; margin-top:6px; background:#20242c; border:1px solid #0c0e12; border-radius:2px; overflow:hidden; }
+      .plate-bar > i{ display:block; height:100%; background:linear-gradient(180deg,#ff9a9a,#d42a2a); transition:width .35s ease; }
+
+      .dmg{
+        position:absolute; z-index:7; font-weight:800; color:#fff;
+        font-size:clamp(20px,3.4vw,32px); text-shadow:0 2px 0 #000, 0 0 10px rgba(0,0,0,.6);
+        animation:dmgfloat 1s ease-out forwards; pointer-events:none;
+        font-variant-numeric:tabular-nums;
+      }
+      .dmg.heal{ color:#8dff9a; } .dmg.hurt{ color:#ffb3b3; } .dmg.crit{ color:#ffd83d; font-size:clamp(26px,4.4vw,42px); }
+      .dmg.poison{ color:#d8a6ff; font-size:clamp(15px,2.4vw,21px); background:rgba(60,0,90,.75); padding:2px 8px; border-radius:999px; border:1px solid #b26bff; }
+      @keyframes dmgfloat{ 0%{ opacity:0; transform:translateY(8px) scale(.8);} 18%{ opacity:1; transform:translateY(0) scale(1.08);} 100%{ opacity:0; transform:translateY(-44px) scale(1);} }
+
+      /* pixelization encounter overlay */
+      .pix{ position:absolute; inset:0; z-index:8; display:grid; pointer-events:none; opacity:0; }
+      .pix.on{ opacity:1; }
+      .pix i{ background:#000; opacity:0; transform:scale(.4); }
+      .pix.go i{ animation:pixin .09s steps(1) forwards; }
+      @keyframes pixin{ to{ opacity:1; transform:scale(1.02); } }
+      .flash{ position:absolute; inset:0; z-index:9; background:#fff; opacity:0; pointer-events:none; }
+      .flash.go{ animation:flasha .28s ease-out; }
+      @keyframes flasha{ 0%{opacity:0;} 25%{opacity:.9;} 100%{opacity:0;} }
+
+      /* EXP / result overlay */
+      .results{
+        position:absolute; inset:0; z-index:10; display:none;
+        align-items:center; justify-content:center; padding:16px;
+        background:rgba(0,0,0,.45);
+      }
+      .results.show{ display:flex; }
+      .results .card{ width:min(520px,100%); padding:0; overflow:hidden; }
+      .results .gain{ padding:10px 16px; font-weight:800; display:flex; justify-content:space-between; border-bottom:2px solid rgba(255,255,255,.25); font-size:16px; }
+      .results .prow{ display:flex; gap:12px; align-items:center; padding:10px 16px; border-bottom:1px solid rgba(255,255,255,.18); }
+      .results .prow:last-of-type{ border-bottom:none; }
+      .avatar{ width:42px; height:42px; border-radius:6px; flex:none; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:17px; color:#0b1020; }
+      .results .pmeta{ flex:1; min-width:0; }
+      .results .pmeta .nm{ font-weight:800; }
+      .results .pmeta .lv{ color:#cfe0ff; font-size:13px; }
+      .results .pexp{ text-align:right; font-size:13px; color:#cfe0ff; }
+      .results .pexp b{ color:#fff; font-size:15px; }
+      .xbar{ height:8px; background:#20242c; border-radius:2px; overflow:hidden; margin-top:4px; width:130px; margin-left:auto; }
+      .xbar > i{ display:block; height:100%; background:linear-gradient(180deg,#ffd3e0,#e0559a); }
+      .results .actions{ padding:12px 16px 16px; display:flex; gap:10px; flex-wrap:wrap; }
+
+      /* ---------- The Box (FFVII-style HUD) ---------- */
+      .ffbox{
+        background:linear-gradient(180deg,var(--box-hi) 0%, var(--box-mid) 45%, var(--box-lo) 100%);
+        border:3px solid var(--box-edge);
+        border-radius:7px;
+        box-shadow:0 0 0 2px var(--box-edge-dark), inset 0 0 0 1px rgba(0,0,0,.35), 0 10px 26px rgba(0,0,0,.45);
+        color:#fff;
+        text-shadow:0 2px 0 rgba(0,0,0,.55);
+      }
+      .battle-hud{
+        position:absolute; z-index:6;
+        left:10px; right:10px; bottom:10px;
+        display:grid; grid-template-columns: minmax(170px, 34%) 1fr;
+        font-size:var(--hud-font);
+      }
+      /* focus helper — one clear next step, always on screen */
+      .focus-line{
+        position:absolute; left:50%; transform:translateX(-50%); top:58px; z-index:6;
+        max-width:92%; padding:7px 16px; border-radius:999px;
+        background:rgba(4,10,26,.82); border:2px solid #ffd83d; color:#fff;
+        font-size:clamp(13px,2vw,16px); font-weight:800; letter-spacing:.01em; text-align:center;
+        box-shadow:0 6px 18px rgba(0,0,0,.4); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      }
+      body.focus-calm .sparkle, body.focus-calm .rainbow, body.focus-calm .island{ display:none; }
+      body.focus-calm .actor svg{ animation-duration:3.2s; }
+      /* fallen = flat on the floor until healed / revived (MMORPG rules) */
+      .actor.fallen{ animation:fallDown .45s ease forwards; z-index:1; }
+      @keyframes fallDown{ to{ transform:rotate(-84deg) translateY(14px); opacity:.75; filter:grayscale(.4); } }
+      .actor.dancing svg{ animation:danceBounce .42s ease-in-out infinite alternate !important; }
+      @keyframes danceBounce{ from{ transform:translateY(0) rotate(-5deg);} to{ transform:translateY(-14px) rotate(5deg);} }
+      .actor3d{ display:none; width:100%; aspect-ratio:1; }
+      .actor.has3d svg{ display:none; }
+      .actor.has3d .actor3d{ display:block; }
+      .glb-lab{ margin-top:14px; border-top:1px solid #262b33; padding-top:12px; }
+      .glb-lab input[type="file"]{ width:100%; color:#d7dee9; font-size:13.5px; margin:4px 0 10px; }
+      #glbPreview{ width:100%; height:210px; background:#05080f; border:1px solid #262b33; border-radius:8px; overflow:hidden; }
+      #glbPreview canvas{ display:block; }
+      .glb-status{ font-size:13.5px; color:#98a4b5; line-height:1.5; margin:8px 0 0; }
+      .stag.down-tag{ background:#8c1220; }
+      .pname.fallen-name{ opacity:.55; text-decoration:line-through; }
+      .battle-hud.text-lg{ --hud-font: clamp(17px, 2.6vw, 24px); }
+      .battle-hud.text-xl{ --hud-font: clamp(19px, 3vw, 27px); }
+      .hud-panel{ padding:10px 14px 12px; min-width:0; }
+      .hud-panel + .hud-panel{ border-left:2px solid rgba(0,0,0,.35); }
+      .hud-head{
+        display:grid; font-size:.62em; font-weight:800; letter-spacing:.14em; color:#dbe7ff;
+        text-transform:uppercase; padding-bottom:4px;
+      }
+      .names-head{ grid-template-columns:1fr auto; }
+      .stats-head, .stat-row{ grid-template-columns: 1.35fr .55fr .95fr 1fr; column-gap:10px; }
+      .hud-row{ display:grid; align-items:center; padding:3px 0; }
+      .stat-row{ font-variant-numeric:tabular-nums; font-weight:700; }
+      .pname{ font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .pname.active{ color:#ffe97a; }
+      .stag{ font-size:.6em; font-weight:800; letter-spacing:.08em; padding:2px 6px; border-radius:3px; background:#3d7a1e; color:#eaffea; vertical-align:middle; margin-left:6px; }
+      .stag.psn{ background:#6d2fa0; }
+      .num{ border-bottom:2px solid rgba(140,190,255,.65); padding-bottom:1px; white-space:nowrap; }
+      .num small{ opacity:.75; font-size:.78em; }
+      .num.low{ color:#ff9a9a; }
+      .bar{ height:.72em; min-height:9px; background:#23262b; border:1px solid #0b0d10; border-radius:2px; overflow:hidden; }
+      .bar > i{ display:block; height:100%; width:0%; transition:width .25s linear; }
+      .bar.limit > i{ background:linear-gradient(180deg,#ffd3e0,#ef7fb2); }
+      .bar.limit.full > i{ background:linear-gradient(90deg,#ff5d5d,#ffd83d,#5dff8a,#5db9ff,#c05dff); background-size:200% 100%; animation:limitshine 1s linear infinite; }
+      @keyframes limitshine{ to{ background-position:200% 0; } }
+      .bar.time > i{ background:linear-gradient(180deg,#fff6c9,#e8d06a); }
+      .bar.barrier > i{ background:linear-gradient(180deg,#cfd6de,#8b95a1); }
+
+      /* command menu — pops up IN PLACE over the names panel, like the reference */
+      .cmd{
+        position:absolute; z-index:5;
+        left:max(8px, calc(34% - 252px)); bottom:8px;
+        width:244px; padding:8px 0;
+        display:none;
+      }
+      .cmd.show{ display:block; }
+      .cmd .cmd-title{ padding:2px 16px 6px; font-size:.72em; letter-spacing:.12em; font-weight:800; color:#dbe7ff; text-transform:uppercase; }
+      .cmd button{
+        display:flex; align-items:center; gap:8px; width:100%;
+        background:none; border:none; color:#fff; cursor:pointer;
+        font:inherit; font-weight:700; text-align:left;
+        padding:7px 16px; min-height:44px; text-shadow:0 2px 0 rgba(0,0,0,.55);
+      }
+      .cmd button:hover, .cmd button:focus-visible{ background:rgba(255,255,255,.14); outline:none; }
+      .cmd button .hand{ opacity:0; font-size:.8em; }
+      .cmd button:hover .hand, .cmd button:focus-visible .hand{ opacity:1; }
+      .cmd button:disabled{ opacity:.45; cursor:default; }
+      .cmd button .cost{ margin-left:auto; font-size:.72em; color:#bcd6ff; font-weight:700; }
+      .cmd .limit-word{
+        background:linear-gradient(90deg,#ff5d5d,#ffd83d,#5dff8a,#5db9ff,#c05dff);
+        -webkit-background-clip:text; background-clip:text; color:transparent;
+        text-shadow:none; font-weight:800;
+      }
+      /* quick options: the math question + 4 answers live inside this same pop-up */
+      .cmd .question{
+        padding:2px 16px 8px; font-size:1.25em; font-weight:800; letter-spacing:.02em; white-space:nowrap;
+      }
+      .cmd .question small{ display:block; font-size:.52em; letter-spacing:.12em; color:#dbe7ff; text-transform:uppercase; margin-bottom:2px; }
+      .cmd .answers{ display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:0 10px 6px; }
+      .cmd .answers button{
+        justify-content:center; text-align:center; border:2px solid rgba(255,255,255,.35);
+        border-radius:5px; font-size:1.1em; background:rgba(0,0,0,.22);
+      }
+      .cmd .answers button:hover, .cmd .answers button:focus-visible{ background:rgba(255,255,255,.22); border-color:#fff; }
+      .cmd .own{ display:flex; gap:6px; padding:4px 10px 8px; }
+      .cmd .own input{
+        flex:1; min-width:0; font:inherit; font-weight:700; color:#0b1020;
+        border:2px solid rgba(255,255,255,.5); border-radius:5px; padding:6px 10px; background:#fff;
+      }
+      .cmd .own button{ width:auto; justify-content:center; border:2px solid rgba(255,255,255,.5); border-radius:5px; background:rgba(0,0,0,.25); }
+      .cmd .backrow{ border-top:1px solid rgba(255,255,255,.25); margin-top:2px; }
+      .cmd .hintline{ padding:0 16px 6px; font-size:.7em; color:#cfe0ff; }
+
+      /* ---------- Studio controls ---------- */
+      .studio{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:22px; }
+      .card-dark{
+        background:#101216; border:1px solid #262b33; border-radius:10px; padding:16px 18px;
+      }
+      .card-dark h2{ margin:0 0 4px; font-size:16px; letter-spacing:.02em; }
+      .card-dark p.sub{ margin:0 0 12px; color:#98a4b5; font-size:13.5px; line-height:1.5; }
+      .row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+      .row:last-child{ margin-bottom:0; }
+      .row .lbl{ width:100%; font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#8b96a7; margin-bottom:2px; }
+      .swatch{
+        width:44px; height:44px; border-radius:8px; cursor:pointer; flex:none;
+        border:2px solid #3a414c; padding:0;
+      }
+      .swatch[aria-pressed="true"]{ border-color:#fff; box-shadow:0 0 0 2px #000, 0 0 0 4px #fff; }
+      .btn{
+        font:inherit; font-weight:700; font-size:14.5px; cursor:pointer;
+        background:#1b212b; color:#eef2f8; border:1px solid #39424f; border-radius:8px;
+        padding:9px 14px; min-height:44px;
+      }
+      .btn:hover{ background:#242d3a; }
+      .btn.primary{ background:#0a63e8; border-color:#2f7df0; color:#fff; }
+      .btn.primary:hover{ background:#1a70f5; }
+      .btn[aria-pressed="true"]{ background:#eef2f8; color:#0b1020; border-color:#eef2f8; }
+      .notes{ list-style:none; margin:0; padding:0; }
+      .notes li{ display:flex; gap:10px; padding:8px 0; border-bottom:1px solid #1f242c; font-size:14.5px; line-height:1.5; color:#d7dee9; }
+      .notes li:last-child{ border-bottom:none; }
+      .notes .n{
+        flex:none; width:24px; height:24px; border-radius:50%; margin-top:1px;
+        background:#0a63e8; color:#fff; font-size:13px; font-weight:800;
+        display:flex; align-items:center; justify-content:center;
+      }
+      .notes b{ color:#fff; }
+      .tip{ margin-top:14px; color:#8b96a7; font-size:13.5px; line-height:1.55; }
+      .tip b{ color:#d7dee9; }
+
+      @media (max-width:760px){
+        .stage{ aspect-ratio:auto; height:660px; min-height:660px; }
+        .battle-hud{ grid-template-columns:1fr; }
+        .hud-panel + .hud-panel{ border-left:none; border-top:2px solid rgba(0,0,0,.35); }
+        .cmd{ left:auto; right:8px; bottom:calc(100% + 8px); top:auto; width:min(250px,78vw); }
+        .studio{ grid-template-columns:1fr; }
+        .actor.monster{ bottom:52%; }
+        .actor.hero-main{ bottom:50%; } .actor.hero-2{ bottom:55%; } .actor.hero-3{ bottom:49%; }
+        .monster-plate{ min-width:150px; }
+        .focus-line{ top:64px; white-space:normal; }
+      }
+      @media (prefers-reduced-motion: reduce){
+        .actor, .bar > i, .plate-bar > i{ transition:none; }
+        .target-arrow, .bar.limit.full > i, .actor svg, .actor.monster svg, .island, .sparkle, .turn-marker, .actor.dancing svg{ animation:none; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <div class="cover">
+        <div class="cover-inner">
+          <h1>Battle Box <span>Studio</span></h1>
+          <p class="tagline">⚔️ Nova's Math Battle Arena — Fight. Solve. Level Up!</p>
+          <p>You control <strong>Nova only</strong>. Friends he finds on the journey — Sage and Pip — fight <strong>on their own</strong> beside him. Wait for Nova's <strong>TIME</strong> bar to fill, then his battle box pops up: <strong>Attack · Magic · Limit · Item · Defend</strong>.</p>
+          <div class="badges"><span class="badge">Grades 4–9</span><span class="badge">Ages 9+</span><span class="badge">Turn-Based Battles</span><span class="badge">Math = Your Attack</span><span class="badge">Phone Ready</span></div>
+        </div>
+      </div>
+
+      <!-- ======= STAGE ======= -->
+      <section class="stage" id="stage" aria-label="Battle stage">
+        <div class="sky-decor" aria-hidden="true"><div class="rainbow"></div><div class="cloud c1"></div><div class="cloud c2"></div><div class="island i1"></div><div class="island i2"></div><div class="island i3"></div></div>
+        <div class="floor" aria-hidden="true"></div>
+        <span class="sparkle" style="left:22%;top:18%">✦</span><span class="sparkle" style="left:68%;top:12%;animation-delay:.5s">✦</span><span class="sparkle" style="left:84%;top:34%;animation-delay:1s">★</span><span class="sparkle" style="left:38%;top:30%;animation-delay:.3s">✧</span>
+        <div class="banner" id="banner" role="status"></div>
+
+        <div class="monster-plate ffbox" id="monsterPlate">
+          <div class="mname"><span id="monsterName">Count Goblin</span><span id="monsterHpNum">600 HP</span></div>
+          <div class="plate-bar"><i id="monsterHpBar" style="width:100%"></i></div>
+        </div>
+
+        <div class="field">
+          <!-- Monster -->
+          <div class="actor monster" id="monsterActor">
+            <div class="target-arrow" id="targetArrow" hidden></div>
+            <svg viewBox="0 0 24 24" width="100%" aria-label="Number goblin monster" role="img">
+              <rect x="3" y="7" width="3" height="2" fill="#7ac74f"/><rect x="18" y="7" width="3" height="2" fill="#7ac74f"/>
+              <rect x="5" y="5" width="14" height="11" fill="#8fd45e"/>
+              <rect x="7" y="3" width="3" height="3" fill="#8fd45e"/><rect x="14" y="3" width="3" height="3" fill="#8fd45e"/>
+              <rect x="8" y="8" width="3" height="3" fill="#fff"/><rect x="13" y="8" width="3" height="3" fill="#fff"/>
+              <rect x="9" y="9" width="1" height="1" fill="#101418"/><rect x="14" y="9" width="1" height="1" fill="#101418"/>
+              <rect x="9" y="13" width="6" height="1" fill="#2c4416"/>
+              <rect x="10" y="14" width="1" height="1" fill="#fff"/><rect x="13" y="14" width="1" height="1" fill="#fff"/>
+              <rect x="10" y="13" width="1" height="1" fill="#ffd83d"/><rect x="16" y="4" width="4" height="2" fill="#ffd83d"/>
+              <rect x="7" y="16" width="10" height="4" fill="#5d8f36"/>
+              <rect x="5" y="20" width="4" height="2" fill="#3c6123"/><rect x="15" y="20" width="4" height="2" fill="#3c6123"/>
+              <rect x="2" y="11" width="3" height="5" fill="#7ac74f"/><rect x="19" y="11" width="3" height="5" fill="#7ac74f"/>
+            </svg>
+            <canvas class="actor3d" id="monster3d" width="220" height="220" aria-label="Uploaded 3D enemy model"></canvas><div class="shadow"></div>
+          </div>
+
+          <!-- Hero: Nova (the player) -->
+          <div class="actor hero-main" id="heroActor">
+            <div class="turn-marker" id="turnMarker" hidden>▼ NOVA'S TURN</div>
+            <svg viewBox="0 0 24 24" width="100%" aria-label="Nova, the hero" role="img">
+              <rect x="9" y="2" width="6" height="2" fill="#ffd83d"/>
+              <rect x="8" y="4" width="8" height="5" fill="#f2c79b"/>
+              <rect x="8" y="4" width="8" height="2" fill="#ffd83d"/>
+              <rect x="10" y="6" width="1" height="1" fill="#101418"/><rect x="13" y="6" width="1" height="1" fill="#101418"/>
+              <rect x="7" y="9" width="10" height="6" fill="#2456c8"/>
+              <rect x="10" y="9" width="4" height="6" fill="#d8dee9"/>
+              <rect x="4" y="10" width="3" height="5" fill="#2456c8"/>
+              <rect x="17" y="8" width="2" height="2" fill="#f2c79b"/>
+              <rect x="18" y="2" width="2" height="8" fill="#cfd6de" transform="rotate(18 19 6)"/>
+              <rect x="8" y="15" width="3" height="5" fill="#23283b"/><rect x="13" y="15" width="3" height="5" fill="#23283b"/>
+              <rect x="7" y="20" width="4" height="2" fill="#5a3a22"/><rect x="13" y="20" width="4" height="2" fill="#5a3a22"/>
+            </svg>
+            <canvas class="actor3d" id="hero3d" width="220" height="220" aria-label="Uploaded 3D hero model"></canvas><div class="shadow"></div>
+          </div>
+
+          <!-- Hero: Sage -->
+          <div class="actor hero-2" id="hero2Actor">
+            <svg viewBox="0 0 24 24" width="100%" aria-label="Sage, the mage" role="img">
+              <rect x="6" y="4" width="12" height="2" fill="#7a3fd1"/><rect x="9" y="1" width="6" height="3" fill="#7a3fd1"/>
+              <rect x="11" y="2" width="2" height="1" fill="#ffd83d"/>
+              <rect x="9" y="6" width="6" height="4" fill="#f2c79b"/>
+              <rect x="10" y="8" width="1" height="1" fill="#101418"/><rect x="13" y="8" width="1" height="1" fill="#101418"/>
+              <rect x="7" y="10" width="10" height="9" fill="#a04fc7"/>
+              <rect x="11" y="10" width="2" height="9" fill="#e0559a"/>
+              <rect x="18" y="6" width="2" height="12" fill="#8a5a2a"/><rect x="17" y="4" width="4" height="3" fill="#5db9ff"/>
+              <rect x="8" y="19" width="3" height="3" fill="#5b2b7a"/><rect x="13" y="19" width="3" height="3" fill="#5b2b7a"/>
+            </svg>
+            <div class="shadow"></div>
+          </div>
+
+          <!-- Hero: Pip -->
+          <div class="actor hero-3" id="hero3Actor">
+            <svg viewBox="0 0 24 24" width="100%" aria-label="Pip, the fighter" role="img">
+              <rect x="9" y="3" width="6" height="2" fill="#3a2a1c"/>
+              <rect x="8" y="5" width="8" height="5" fill="#c98d5f"/>
+              <rect x="10" y="7" width="1" height="1" fill="#101418"/><rect x="13" y="7" width="1" height="1" fill="#101418"/>
+              <rect x="7" y="10" width="10" height="5" fill="#c22e2e"/>
+              <rect x="5" y="11" width="2" height="5" fill="#c22e2e"/><rect x="17" y="11" width="2" height="5" fill="#c22e2e"/>
+              <rect x="8" y="15" width="3" height="5" fill="#2e3a2e"/><rect x="13" y="15" width="3" height="5" fill="#2e3a2e"/>
+              <rect x="7" y="20" width="4" height="2" fill="#22252b"/><rect x="13" y="20" width="4" height="2" fill="#22252b"/>
+            </svg>
+            <div class="shadow"></div>
+          </div>
+        </div>
+
+        <div class="focus-line" id="focusLine">🎯 Next: Wait for Nova's TIME bar to fill.</div>
+      <!-- ======= THE BOX ======= -->
+      <section class="battle-hud ffbox" id="hud" aria-label="Battle box">
+        <div class="hud-panel">
+          <div class="hud-head names-head"><span>Name</span><span>Barrier</span></div>
+          <div class="hud-row" style="grid-template-columns:1fr auto;">
+            <span class="pname active" id="nameNova">Nova <span class="stag" id="jobTag">STRIKER</span><span class="stag psn" id="psnTag" hidden>PSN</span></span>
+            <span class="bar barrier" style="width:74px"><i style="width:60%"></i></span>
+          </div>
+          <div class="hud-row" style="grid-template-columns:1fr auto;">
+            <span class="pname" id="nameSage">Sage</span>
+            <span class="bar barrier" style="width:74px"><i style="width:35%"></i></span>
+          </div>
+          <div class="hud-row" style="grid-template-columns:1fr auto;">
+            <span class="pname" id="namePip">Pip</span>
+            <span class="bar barrier" style="width:74px"><i style="width:80%"></i></span>
+          </div>
+        </div>
+
+        <div class="hud-panel">
+          <div class="hud-head stats-head"><span>HP</span><span>MP</span><span>Limit</span><span>Time</span></div>
+          <div class="hud-row stat-row">
+            <span class="num" id="hpNova">940<small>/940</small></span>
+            <span class="num" id="mpNova">86</span>
+            <span class="bar limit" id="limitBar"><i></i></span>
+            <span class="bar time" id="timeBar"><i></i></span>
+          </div>
+          <div class="hud-row stat-row">
+            <span class="num" id="hpSage">712<small>/831</small></span>
+            <span class="num">180</span>
+            <span class="bar limit"><i style="width:100%;background:linear-gradient(180deg,#ffd3e0,#ef7fb2)"></i></span>
+            <span class="bar time"><i style="width:70%"></i></span>
+          </div>
+          <div class="hud-row stat-row">
+            <span class="num" id="hpPip">759<small>/948</small></span>
+            <span class="num">156</span>
+            <span class="bar limit"><i style="width:22%"></i></span>
+            <span class="bar time"><i style="width:88%"></i></span>
+          </div>
+        </div>
+
+        <!-- command menu pop-up -->
+        <div class="cmd ffbox" id="cmdMenu" role="menu" aria-label="Battle commands"></div>
+      </section>
+
+        <div class="pix" id="pix"></div>
+        <div class="flash" id="flash"></div>
+
+        <!-- EXP results -->
+        <div class="results" id="results">
+          <div class="card ffbox">
+            <div class="gain"><span id="gainLine">Gained EXP and AP.</span><span>EXP&nbsp; <b id="gainExp">120</b>P &nbsp;·&nbsp; AP&nbsp; <b>8</b>P</span></div>
+            <div class="prow">
+              <div class="avatar" style="background:#ffd83d">N</div>
+              <div class="pmeta"><div class="nm">Nova</div><div class="lv">Level: <b id="novaLevel">5</b></div></div>
+              <div class="pexp">EXP: <b id="novaExp">640</b>P<br>next level: <span id="novaNext">160</span>P<div class="xbar"><i id="novaXbar" style="width:40%"></i></div></div>
+            </div>
+            <div class="prow">
+              <div class="avatar" style="background:#c99aff">S</div>
+              <div class="pmeta"><div class="nm">Sage</div><div class="lv">Level: <b>5</b></div></div>
+              <div class="pexp">EXP: <b>612</b>P<br>next level: 188P<div class="xbar"><i style="width:32%"></i></div></div>
+            </div>
+            <div class="prow">
+              <div class="avatar" style="background:#ff9a9a">P</div>
+              <div class="pmeta"><div class="nm">Pip</div><div class="lv">Level: <b>4</b></div></div>
+              <div class="pexp">EXP: <b>588</b>P<br>next level: 212P<div class="xbar"><i style="width:24%"></i></div></div>
+            </div>
+            <div class="actions">
+              <button class="btn primary" id="nextBattleBtn" type="button">Next battle</button>
+              <button class="btn" id="closeResultsBtn" type="button">Keep looking at the box</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="poison-note" id="poisonNote" role="status"><b>PSN = Poison!</b> That's why Nova keeps losing <b>9 HP</b> over and over — poison ticks <b>−9</b> while it's his turn to choose. Cure it fast: <b>Item → Antidote</b>. The goblin's HP bar up top is separate — watch it drop when Nova, Sage, and Pip hit.</div>
+
+      <!-- ======= STUDIO ======= -->
+      <section class="studio">
+        <div class="card-dark">
+          <h2>Work on the box</h2>
+          <p class="sub">Change the box color, text size, and run the encounter transition. Everything here changes the live box above — this is the copy we perfect before it goes into the games.</p>
+          <div class="row">
+            <span class="lbl">Box color</span>
+            <button class="swatch" type="button" data-theme="blue"   aria-pressed="true"  aria-label="Classic blue box"  style="background:linear-gradient(180deg,#0a63e8,#00043c)"></button>
+            <button class="swatch" type="button" data-theme="violet" aria-pressed="false" aria-label="Violet box"        style="background:linear-gradient(180deg,#7a3fd1,#160038)"></button>
+            <button class="swatch" type="button" data-theme="emerald" aria-pressed="false" aria-label="Emerald box"      style="background:linear-gradient(180deg,#0da873,#00281a)"></button>
+            <button class="swatch" type="button" data-theme="crimson" aria-pressed="false" aria-label="Crimson box"      style="background:linear-gradient(180deg,#d42a3a,#38000a)"></button>
+            <button class="swatch" type="button" data-theme="amber"  aria-pressed="false" aria-label="Amber box"         style="background:linear-gradient(180deg,#d9930d,#38230a)"></button>
+            <button class="swatch" type="button" data-theme="slate"  aria-pressed="false" aria-label="Slate box"         style="background:linear-gradient(180deg,#5a6d80,#0d141b)"></button>
+          </div>
+          <div class="row">
+            <span class="lbl">Text size in the box</span>
+            <button class="btn ts-btn" type="button" data-ts="" aria-pressed="true">Normal</button>
+            <button class="btn ts-btn" type="button" data-ts="text-lg" aria-pressed="false">Large</button>
+            <button class="btn ts-btn" type="button" data-ts="text-xl" aria-pressed="false">Extra large</button>
+          </div>
+          <div class="row">
+            <span class="lbl">Battle</span>
+            <button class="btn primary" type="button" id="encounterBtn">Trigger random encounter</button>
+            <button class="btn" type="button" id="resetBtn">Reset battle</button>
+          </div>
+          <div class="row">
+            <span class="lbl">Nova's job — pick a role like a real MMORPG</span>
+            <button class="btn job-btn" type="button" data-job="tank" aria-pressed="false">🛡️ Tank — soaks the hits</button>
+            <button class="btn job-btn" type="button" data-job="striker" aria-pressed="true">⚔️ Striker — big damage</button>
+            <button class="btn job-btn" type="button" data-job="mage" aria-pressed="false">🔮 Mage — huge Magic</button>
+            <button class="btn job-btn" type="button" data-job="healer" aria-pressed="false">💚 Healer — strong cures</button>
+          </div>
+          <div class="row">
+            <span class="lbl">Focus helper — for keeping eyes on one thing</span>
+            <button class="btn" type="button" id="focusBtn" aria-pressed="false">🎯 Focus mode: OFF</button>
+          </div>
+          <div class="glb-lab">
+            <span class="lbl" style="display:block;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#8b96a7;margin-bottom:2px">3D Character Lab — upload real 3D models (.glb)</span>
+            <p class="sub" style="margin-bottom:6px">Testing grounds: upload a <b>.glb</b> character (Three.js / GLB) and it replaces the flat drawing right on the battlefield, spinning in the preview below.</p>
+            <label for="glbHero" style="font-weight:700;font-size:14px">Hero model (Nova)</label>
+            <input type="file" id="glbHero" accept=".glb,.gltf">
+            <label for="glbEnemy" style="font-weight:700;font-size:14px">Enemy model</label>
+            <input type="file" id="glbEnemy" accept=".glb,.gltf">
+            <div id="glbPreview" aria-label="3D model preview"></div>
+            <p class="glb-status" id="glbStatus">No 3D model loaded yet — the flat drawings are fighting. Upload one and watch it take the field.</p>
+          </div>
+        </div>
+
+        <div class="card-dark">
+          <h2>Notated — the rules for this box</h2>
+          <p class="sub">Written down from the walkthrough, so every game that uses this box follows them.</p>
+          <ul class="notes">
+            <li><span class="n">1</span><span><b>Pixelization first.</b> Walking along, a monster appears — the screen pixelates into the battle, then the box is already there.</span></li>
+            <li><span class="n">2</span><span><b>Quick options open in place.</b> Tap Attack and the choices open inside the box. Nobody scrolls down the middle of the screen to read.</span></li>
+            <li><span class="n">3</span><span><b>Four choices, or type your own.</b> Every question gives 4 answers to tap — plus a box to type a different answer.</span></li>
+            <li><span class="n">4</span><span><b>Short messages only.</b> What happened shows as one big line up top — “Poison!”, “Healing Wind” — never a long paragraph.</span></li>
+            <li><span class="n">5</span><span><b>HP · MP · Limit · Time, always visible.</b> Names on the left, numbers on the right. When Limit fills up, the Limit Break — the superpower — unlocks.</span></li>
+            <li><span class="n">6</span><span><b>The box never takes over the screen.</b> It stays at the bottom, sized so the fight is always in view.</span></li>
+            <li><span class="n">7</span><span><b>It has to be Nova's turn first.</b> Attack does NOT pop up right away. Nova's TIME bar fills, the “NOVA'S TURN” marker drops over him, a banner calls his turn — only then does the box open.</span></li>
+            <li><span class="n">8</span><span><b>You control Nova only.</b> Sage and Pip are friends Nova found on the journey. They attack on their own timers — no old-school controlling everybody.</span></li>
+            <li><span class="n">9</span><span><b>PSN means Poison.</b> The purple PSN tag = poisoned. It ticks −9 HP again and again while Nova chooses — that's the “keeps dying by nine” bug, explained. Item → Antidote cures it.</span></li>
+            <li><span class="n">10</span><span><b>Magic = bigger hits. Limit = superpower.</b> Magic costs MP for a harder question and a bigger hit. Limit stays greyed out until the bar is 100% full, then it unlocks as a rainbow Limit Break.</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="card-dark" style="margin-top:14px" aria-label="Build notes kept across updates">
+        <h2>📋 Build Notes — what's in this version <span style="color:#8b96a7;font-size:13px;font-weight:600">(kept across updates — future edits must NOT erase these)</span></h2>
+        <p class="sub">Every update adds to this list instead of wiping it, so you can always see what we've done, step by step.</p>
+        <ul class="notes">
+          <li><span class="n">✓</span><span><b>v1 — The Box:</b> Blue FFVII-style battle box on black, 6 box colors, 3 text sizes, pixelization encounter, names / HP / MP / Limit / Time always visible, Attack opens 4 math answers + type-your-own inside the box, short one-line banners, EXP results screen, goblin HP plate up top.</span></li>
+          <li><span class="n">✓</span><span><b>v2 — Nova's Turn &amp; New World:</b> Menu only opens when Nova's TIME fills + “NOVA'S TURN” marker and banner; full menu is Attack / Magic (bigger hits) / Limit (greyed out until full) / Item / Defend; Nova-only control — Sage &amp; Pip auto-fight; PSN explained with a visible “POISON −9” tick and Antidote callout; brand-new sky (rainbow, clouds, floating islands, sparkles) and blocky tile floor; smoother animation — idle bounce/sway, dash + slash arc, magic sparkle burst, Limit rainbow aura, monster entrance and dissolve-out defeat; cover header for Battle Box Studio, made to trend with grades 4–9.</span></li>
+          <li><span class="n">✓</span><span><b>v3 — Inside the Screen, Down &amp; Revive, Dance, Jobs, 3D Lab:</b> The blue box now sits INSIDE the battlefield, flush with the game screen — the stage got bigger so the box fits in the green, heroes and monster stay where they were. When a fighter's HP hits zero they FALL FLAT on the floor and stay there until healed or revived — Sage (healer) can bring them back, or use a Phoenix Down from Item. Win the fight and a victory song plays while Nova, Sage, and Pip all DANCE; lose and the ENEMY dances and you start over. Nova picks a job like a real MMORPG — Tank / Striker / Mage / Healer — each with its own HP, MP, and damage. Focus helper added: one “🎯 Next:” line always shows the single next step, plus a Focus mode that calms the screen down. New 3D Character Lab under Trigger Random Encounter: upload real .glb hero/enemy models and they replace the flat drawings on the field.</span></li>
+          <li><span class="n">→</span><span><b>Next ideas (not built yet):</b> more monsters, walking-around world before the battle, swords &amp; item collection screens.</span></li>
+        </ul>
+      </section>
+
+      <p class="tip"><b>New in v3:</b> the box lives inside the screen now. Pick Nova's <b>job</b> below (Tank takes the hits, Healer cures big), watch the <b>🎯 Next:</b> line — it always says the one thing to do. If somebody falls, they stay down until <b>Sage revives them</b> or you use a <b>Phoenix Down</b>. Win = song + everybody dances. Lose = the monster dances. Upload a <b>.glb</b> in the 3D Character Lab to swap in a real 3D fighter.</p>
+      <p class="tip"><b>How to try it:</b> hit <b>Trigger random encounter</b> and watch the pixelization. <b>Don't tap yet</b> — wait for Nova's TIME bar to fill and the <b>“Nova's Turn!”</b> call. Then his menu pops up over the names: Attack opens a math question with 4 answers, Magic is a bigger hit for 8 MP, Limit is locked until the bar is full, Item heals or cures poison (PSN), and Defend halves the next hit. Sage and Pip will chip in on their own — you never control them.</p>
+    </main>
+
+    <script>
+      (function(){
+        "use strict";
+        var $ = function(id){ return document.getElementById(id); };
+        var stage = $("stage"), hud = $("hud"), cmd = $("cmdMenu"), banner = $("banner");
+        var monsterActor = $("monsterActor"), heroActor = $("heroActor"), sageActor = $("hero2Actor"), pipActor = $("hero3Actor");
+        function setFocus(t){ var f = $("focusLine"); if(f) f.textContent = "🎯 Next: " + t; }
+        var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        var THEMES = {
+          blue:    ["#0a63e8","#0033a0","#00043c"],
+          violet:  ["#7a3fd1","#3d1499","#160038"],
+          emerald: ["#0da873","#066644","#00281a"],
+          crimson: ["#d42a3a","#8c1220","#38000a"],
+          amber:   ["#d9930d","#96650a","#38230a"],
+          slate:   ["#5a6d80","#33424f","#0d141b"]
+        };
+        document.querySelectorAll(".swatch").forEach(function(b){
+          b.addEventListener("click", function(){
+            var t = THEMES[b.getAttribute("data-theme")];
+            if(!t) return;
+            document.documentElement.style.setProperty("--box-hi", t[0]);
+            document.documentElement.style.setProperty("--box-mid", t[1]);
+            document.documentElement.style.setProperty("--box-lo", t[2]);
+            document.querySelectorAll(".swatch").forEach(function(x){ x.setAttribute("aria-pressed","false"); });
+            b.setAttribute("aria-pressed","true");
+          });
+        });
+        document.querySelectorAll(".ts-btn").forEach(function(b){
+          b.addEventListener("click", function(){
+            hud.classList.remove("text-lg","text-xl");
+            var ts = b.getAttribute("data-ts");
+            if(ts) hud.classList.add(ts);
+            document.querySelectorAll(".ts-btn").forEach(function(x){ x.setAttribute("aria-pressed","false"); });
+            b.setAttribute("aria-pressed","true");
+          });
+        });
+
+        /* ---------- battle state ---------- */
+        var MONSTERS = [
+          { name:"Count Goblin", hp:600 },
+          { name:"Times Troll", hp:680 },
+          { name:"Minus Imp", hp:540 },
+          { name:"Fraction Fiend", hp:760 }
+        ];
+        var JOBS = {
+          tank:    { label:"TANK",    hp:1320, mp:60,  dmg:1.0,  magic:1.0, heal:1.0, aggro:0.78 },
+          striker: { label:"STRIKER", hp:940,  mp:86,  dmg:1.4,  magic:1.1, heal:1.0, aggro:0.5 },
+          mage:    { label:"MAGE",    hp:800,  mp:150, dmg:0.9,  magic:1.7, heal:1.0, aggro:0.45 },
+          healer:  { label:"HEALER",  hp:980,  mp:120, dmg:0.9,  magic:1.0, heal:1.9, aggro:0.45 }
+        };
+        var curJob = "striker";
+        var S = {};
+        function resetBattle(monsterIdx){
+          var m = MONSTERS[monsterIdx || 0];
+          var J = JOBS[curJob];
+          S = {
+            over:false, busy:false, ready:false, won:false,
+            novaHp:J.hp, novaMax:J.hp, novaMp:J.mp, limit:20, time:0,
+            sageHp:712, sageMax:831, pipHp:759, pipMax:948,
+            monsterName:m.name, monsterHp:m.hp, monsterMax:m.hp,
+            potions:3, antidotes:2, phoenix:2, poisoned:false, streak:0,
+            level:5, exp:520, monsterIdx: monsterIdx || 0
+          };
+          [heroActor, sageActor, pipActor, monsterActor].forEach(function(a){ a.classList.remove("down","fallen","dancing"); });
+          heroActor.classList.remove("down");
+          monsterActor.style.opacity = "1";
+          monsterActor.classList.remove("enter"); void monsterActor.offsetWidth; monsterActor.classList.add("enter");
+          $("results").classList.remove("show");
+          render();
+        }
+        function render(){
+          $("hpNova").innerHTML = S.novaHp + "<small>/" + S.novaMax + "</small>";
+          $("hpNova").classList.toggle("low", S.novaHp <= S.novaMax * 0.25);
+          $("mpNova").textContent = S.novaMp;
+          var lb = $("limitBar");
+          lb.querySelector("i").style.width = S.limit + "%";
+          lb.classList.toggle("full", S.limit >= 100);
+          $("timeBar").querySelector("i").style.width = S.time + "%";
+          $("monsterName").textContent = S.monsterName;
+          $("monsterHpNum").textContent = Math.max(0,S.monsterHp) + " HP";
+          $("monsterHpBar").style.width = Math.max(0, S.monsterHp / S.monsterMax * 100) + "%";
+          $("hpSage").innerHTML = Math.max(0,S.sageHp) + "<small>/" + S.sageMax + "</small>";
+          $("hpSage").classList.toggle("low", S.sageHp <= S.sageMax * 0.25);
+          $("hpPip").innerHTML = Math.max(0,S.pipHp) + "<small>/" + S.pipMax + "</small>";
+          $("hpPip").classList.toggle("low", S.pipHp <= S.pipMax * 0.25);
+          $("jobTag").textContent = JOBS[curJob].label;
+          sageActor.classList.toggle("fallen", S.sageHp <= 0);
+          pipActor.classList.toggle("fallen", S.pipHp <= 0);
+          heroActor.classList.toggle("fallen", S.novaHp <= 0 && !S.over);
+          $("nameSage").classList.toggle("fallen-name", S.sageHp <= 0);
+          $("namePip").classList.toggle("fallen-name", S.pipHp <= 0);
+          $("psnTag").hidden = !S.poisoned;
+          var pn = $("poisonNote"); if(pn) pn.classList.toggle("show", !!S.poisoned);
+          heroActor.classList.toggle("limit-ready", S.limit >= 100);
+          var tm = $("turnMarker"); if(tm) tm.hidden = !(S.ready && !S.over);
+        }
+
+        /* ---------- short banner ---------- */
+        var bannerTimer = null;
+        function showBanner(text, kind, ms){
+          banner.textContent = text;
+          banner.className = "banner show" + (kind ? " " + kind : "");
+          clearTimeout(bannerTimer);
+          bannerTimer = setTimeout(function(){ banner.classList.remove("show"); }, ms || 1500);
+        }
+
+        /* ---------- damage numbers ---------- */
+        function dmgNum(actor, text, cls){
+          var r = actor.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+          var d = document.createElement("div");
+          d.className = "dmg" + (cls ? " " + cls : "");
+          d.textContent = text;
+          d.style.left = (r.left - sr.left + r.width * 0.32) + "px";
+          d.style.top = (r.top - sr.top + 6) + "px";
+          stage.appendChild(d);
+          setTimeout(function(){ d.remove(); }, 1050);
+        }
+        function hitFx(actor){ actor.classList.remove("hit"); void actor.offsetWidth; actor.classList.add("hit"); setTimeout(function(){ actor.classList.remove("hit"); }, 650); }
+
+        /* ---------- command menu ---------- */
+        function closeCmd(){ cmd.classList.remove("show"); cmd.innerHTML = ""; }
+        function openMainCmd(){
+          if(S.over || S.busy || !S.ready) return;
+          showBanner("Nova's Turn!", "blue", 1100);
+          setFocus("Pick Attack, Magic, Item, or Defend.");
+          var limitBtn = S.limit >= 100
+            ? '<button type="button" data-act="limit"><span class="hand">☞</span><span class="limit-word">Limit</span><span class="cost">FULL — READY!</span></button>'
+            : '<button type="button" disabled title="Limit fills as Nova fights"><span class="hand">☞</span>Limit<span class="cost">' + Math.floor(S.limit) + '% — not ready</span></button>';
+          cmd.innerHTML =
+            '<div class="cmd-title">⭐ Nova — your turn!</div>' +
+            '<button type="button" data-act="attack"><span class="hand">☞</span>Attack</button>' +
+            '<button type="button" data-act="magic"><span class="hand">☞</span>Magic<span class="cost">8 MP · bigger hit</span></button>' +
+            limitBtn +
+            '<button type="button" data-act="item"><span class="hand">☞</span>Item' + (S.poisoned ? '<span class="cost">Use Antidote!</span>' : '') + '</button>' +
+            '<button type="button" data-act="defend"><span class="hand">☞</span>Defend</button>';
+          cmd.classList.add("show");
+          render();
+          wireCmd();
+        }
+        function wireCmd(){
+          cmd.querySelectorAll("button[data-act]").forEach(function(b){
+            b.addEventListener("click", function(){
+              var act = b.getAttribute("data-act");
+              if(act === "attack") openQuestion("attack");
+              else if(act === "magic") openQuestion("magic");
+              else if(act === "item") openItems();
+              else if(act === "limit") doLimit();
+              else if(act === "defend") doDefend();
+            });
+          });
+          var back = cmd.querySelector("button[data-back]");
+          if(back) back.addEventListener("click", openMainCmd);
+        }
+
+        /* math question with 4 quick answers + type-your-own */
+        var currentQ = null;
+        function makeQuestion(hard){
+          var a, b, op, ans, text;
+          var kind = hard ? 2 : Math.floor(Math.random() * 3);
+          if(kind === 0){ a = 4 + Math.floor(Math.random()*46); b = 3 + Math.floor(Math.random()*38); op = "+"; ans = a + b; }
+          else if(kind === 1){ a = 12 + Math.floor(Math.random()*40); b = 2 + Math.floor(Math.random()* (a - 3)); op = "−"; ans = a - b; }
+          else { a = 3 + Math.floor(Math.random()* (hard ? 9 : 7)); b = 3 + Math.floor(Math.random()*9); op = "×"; ans = a * b; }
+          text = a + " " + op + " " + b + " = ?";
+          var opts = [ans];
+          while(opts.length < 4){
+            var off = [1,-1,2,-2,10,-10,3,-3][Math.floor(Math.random()*8)];
+            var c = ans + off;
+            if(c >= 0 && opts.indexOf(c) === -1) opts.push(c);
+          }
+          opts.sort(function(){ return Math.random() - 0.5; });
+          return { text:text, ans:ans, opts:opts };
+        }
+        function openQuestion(mode){
+          if(mode === "magic" && S.novaMp < 8){ showBanner("Not enough MP!", "blue"); return; }
+          setFocus("Answer the question — tap 1 of the 4 answers, or type your own.");
+          currentQ = makeQuestion(mode === "magic");
+          currentQ.mode = mode;
+          var btns = currentQ.opts.map(function(o){
+            return '<button type="button" data-ans="' + o + '">' + o + "</button>";
+          }).join("");
+          cmd.innerHTML =
+            '<div class="question"><small>' + (mode === "magic" ? "Math Magic — bigger hit" : "Attack — solve to strike") + "</small>" + currentQ.text + "</div>" +
+            '<div class="answers">' + btns + "</div>" +
+            '<div class="hintline">…or type your own answer:</div>' +
+            '<div class="own"><input id="ownAns" inputmode="numeric" type="number" aria-label="Type your own answer" placeholder="Your answer"><button type="button" id="ownGo">Go</button></div>' +
+            '<div class="backrow"><button type="button" data-back="1"><span class="hand">☞</span>Back</button></div>';
+          cmd.classList.add("show");
+          cmd.querySelectorAll("button[data-ans]").forEach(function(b){
+            b.addEventListener("click", function(){ resolveAnswer(parseInt(b.getAttribute("data-ans"), 10)); });
+          });
+          $("ownGo").addEventListener("click", function(){
+            var v = parseInt($("ownAns").value, 10);
+            if(!isNaN(v)) resolveAnswer(v);
+          });
+          $("ownAns").addEventListener("keydown", function(e){
+            if(e.key === "Enter"){ var v = parseInt(e.target.value, 10); if(!isNaN(v)) resolveAnswer(v); }
+          });
+          wireCmd();
+        }
+        function openItems(){
+          cmd.innerHTML =
+            '<div class="cmd-title">Item</div>' +
+            '<button type="button" data-item="potion" ' + (S.potions <= 0 ? "disabled" : "") + '><span class="hand">☞</span>Potion<span class="cost">×' + S.potions + " · heal 150</span></button>" +
+            '<button type="button" data-item="antidote" ' + (S.antidotes <= 0 ? "disabled" : "") + '><span class="hand">☞</span>Antidote<span class="cost">×' + S.antidotes + " · cure PSN</span></button>" +
+            '<button type="button" data-item="phoenix" ' + (S.phoenix <= 0 || (S.sageHp > 0 && S.pipHp > 0) ? "disabled" : "") + '><span class="hand">☞</span>Phoenix Down<span class="cost">×' + S.phoenix + " · revive a friend</span></button>" +
+            '<div class="backrow"><button type="button" data-back="1"><span class="hand">☞</span>Back</button></div>';
+          cmd.classList.add("show");
+          cmd.querySelectorAll("button[data-item]").forEach(function(b){
+            b.addEventListener("click", function(){ useItem(b.getAttribute("data-item")); });
+          });
+          wireCmd();
+        }
+
+        /* ---------- actions ---------- */
+        function endNovaTurn(){
+          S.ready = false; S.time = 0; closeCmd(); render();
+        }
+        function resolveAnswer(v){
+          if(!currentQ || S.busy) return;
+          var mode = currentQ.mode;
+          if(v === currentQ.ans){
+            if(mode === "magic") S.novaMp -= 8;
+            S.streak++;
+            var crit = Math.random() < 0.15;
+            var J = JOBS[curJob];
+            var dmg = Math.round((mode === "magic" ? (130 + Math.floor(Math.random()*60)) * J.magic : (62 + Math.floor(Math.random()*36)) * J.dmg));
+            if(crit) dmg = Math.round(dmg * 1.7);
+            S.limit = Math.min(100, S.limit + (mode === "magic" ? 10 : 7));
+            strikeMonster(dmg, crit, mode === "magic" ? "Math Magic!" : null);
+          } else {
+            S.streak = 0;
+            showBanner("Miss!", "blue");
+            endNovaTurn();
+            setTimeout(monsterTurn, 650);
+          }
+          currentQ = null;
+        }
+        function slashFx(actor){
+          var r = actor.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+          var s = document.createElement("div"); s.className = "slash";
+          s.style.left = (r.left - sr.left + r.width*0.2) + "px"; s.style.top = (r.top - sr.top + 6) + "px";
+          stage.appendChild(s); setTimeout(function(){ s.remove(); }, 360);
+        }
+        function burstFx(actor, magic){
+          var r = actor.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+          var b = document.createElement("div"); b.className = "burst";
+          b.style.left = (r.left - sr.left + r.width/2) + "px"; b.style.top = (r.top - sr.top + r.height/3) + "px";
+          for(var i=0;i<10;i++){ var p=document.createElement("i"); var a=(i/10)*Math.PI*2; p.style.setProperty("--dx", Math.cos(a)*(magic?64:40)+"px"); p.style.setProperty("--dy", Math.sin(a)*(magic?64:40)+"px"); if(magic){ p.style.background="#ffd3ff"; p.style.boxShadow="0 0 10px #e0559a"; } b.appendChild(p); }
+          stage.appendChild(b); setTimeout(function(){ b.remove(); }, 600);
+        }
+        function strikeMonster(dmg, crit, bannerText){
+          S.busy = true; closeCmd();
+          heroActor.classList.add("lunge-r");
+          setTimeout(function(){
+            S.monsterHp -= dmg;
+            hitFx(monsterActor);
+            slashFx(monsterActor);
+            burstFx(monsterActor, !!bannerText || crit);
+            dmgNum(monsterActor, dmg, crit ? "crit" : "");
+            if(bannerText) showBanner(bannerText, "blue");
+            heroActor.classList.remove("lunge-r");
+            render();
+            setTimeout(function(){
+              S.busy = false;
+              if(S.monsterHp <= 0) return victory();
+              endNovaTurn();
+              setTimeout(monsterTurn, 550);
+            }, 420);
+          }, reduced ? 30 : 200);
+        }
+        function doLimit(){
+          S.limit = 0;
+          showBanner("Limit Break — Number Nova!", "");
+          strikeMonster(240 + Math.floor(Math.random()*80), true, null);
+        }
+        function doDefend(){
+          S.defending = true;
+          showBanner("Nova defends.", "blue", 1000);
+          endNovaTurn();
+          setTimeout(monsterTurn, 500);
+        }
+        function useItem(kind){
+          if(kind === "potion"){
+            if(S.potions <= 0) return;
+            S.potions--;
+            var heal = Math.min(Math.round(150 * JOBS[curJob].heal), S.novaMax - S.novaHp);
+            S.novaHp += heal;
+            dmgNum(heroActor, "+" + heal, "heal");
+            showBanner("Potion! +" + heal + " HP", "green", 1200);
+          } else if(kind === "antidote") {
+            if(S.antidotes <= 0) return;
+            S.antidotes--;
+            S.poisoned = false;
+            showBanner("Poison cured!", "green", 1200);
+          } else {
+            if(S.phoenix <= 0) return;
+            S.phoenix--;
+            if(S.sageHp <= 0){ S.sageHp = Math.round(S.sageMax * 0.45); showBanner("Sage is back up!", "green", 1400); dmgNum(sageActor, "REVIVED!", "heal"); }
+            else if(S.pipHp <= 0){ S.pipHp = Math.round(S.pipMax * 0.45); showBanner("Pip is back up!", "green", 1400); dmgNum(pipActor, "REVIVED!", "heal"); }
+            render();
+          }
+          endNovaTurn();
+          setTimeout(monsterTurn, 600);
+        }
+        function monsterTurn(){
+          if(S.over || S.monsterHp <= 0) return;
+          S.busy = true;
+          setFocus("Watch out — the monster is moving!");
+          monsterActor.classList.add("lunge-l");
+          setTimeout(function(){
+            monsterActor.classList.remove("lunge-l");
+            var roll = Math.random();
+            if(roll < 0.20 && !S.poisoned && S.novaHp > 0){
+              S.poisoned = true;
+              showBanner("Poison! PSN — ticks −9 HP", "");
+              dmgNum(heroActor, "POISON!", "poison");
+            } else {
+              var dmg = 34 + Math.floor(Math.random()*40);
+              /* pick a target: the Tank pulls the hits, downed fighters are skipped */
+              var targets = [];
+              if(S.novaHp > 0) targets.push({ who:"nova", w:JOBS[curJob].aggro });
+              if(S.sageHp > 0) targets.push({ who:"sage", w:0.28 });
+              if(S.pipHp > 0) targets.push({ who:"pip", w:0.28 });
+              if(!targets.length){ S.busy = false; return defeat(); }
+              var tw = targets.reduce(function(a,t){ return a + t.w; }, 0), pick = Math.random() * tw, tgt = targets[0];
+              for(var i = 0; i < targets.length; i++){ pick -= targets[i].w; if(pick <= 0){ tgt = targets[i]; break; } }
+              if(tgt.who === "nova"){
+                if(S.defending) dmg = Math.round(dmg / 2);
+                S.defending = false;
+                S.novaHp = Math.max(0, S.novaHp - dmg);
+                S.limit = Math.min(100, S.limit + 12);
+                hitFx(heroActor); dmgNum(heroActor, dmg, "hurt");
+                if(S.novaHp <= 0){ showBanner("Nova fell!", ""); setFocus("Nova is down — Sage can bring him back. Hold on!"); scheduleSageRevive(); }
+              } else if(tgt.who === "sage"){
+                S.sageHp = Math.max(0, S.sageHp - dmg);
+                hitFx(sageActor); dmgNum(sageActor, dmg, "hurt");
+                if(S.sageHp <= 0) showBanner("Sage fell!", "");
+              } else {
+                S.pipHp = Math.max(0, S.pipHp - dmg);
+                hitFx(pipActor); dmgNum(pipActor, dmg, "hurt");
+                if(S.pipHp <= 0) showBanner("Pip fell!", "");
+              }
+            }
+            render();
+            S.busy = false;
+            if(S.novaHp <= 0 && S.sageHp <= 0 && S.pipHp <= 0) defeat();
+            else if(!S.ready && S.novaHp > 0) setFocus("Wait for Nova's TIME bar to fill.");
+          }, reduced ? 30 : 220);
+        }
+        /* Sage the healer brings a fallen friend back — MMORPG revive */
+        var revivePending = false;
+        function scheduleSageRevive(){
+          if(revivePending || S.sageHp <= 0 || S.over) { if(S.sageHp <= 0 && S.novaHp <= 0 && S.pipHp <= 0) defeat(); return; }
+          revivePending = true;
+          setTimeout(function(){
+            revivePending = false;
+            if(S.over) return;
+            if(S.novaHp <= 0 && S.sageHp > 0){
+              S.novaHp = Math.round(S.novaMax * 0.45);
+              showBanner("Sage revives Nova!", "green", 1500);
+              dmgNum(heroActor, "REVIVED!", "heal");
+              setFocus("Nova is back! Wait for his TIME bar.");
+              render();
+            }
+          }, 3000);
+        }
+        /* tiny victory / defeat songs, played by the page itself */
+        var audioCtx = null;
+        function playSong(win){
+          try{
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if(audioCtx.state === "suspended") audioCtx.resume();
+            var notes = win ? [523,523,523,659,784,659,784] : [392,370,349,311];
+            var t = audioCtx.currentTime;
+            notes.forEach(function(f,i){
+              var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+              o.type = "triangle"; o.frequency.value = f;
+              g.gain.setValueAtTime(0.0001, t + i * 0.16);
+              g.gain.exponentialRampToValueAtTime(win ? 0.22 : 0.16, t + i * 0.16 + 0.03);
+              g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.16 + 0.34);
+              o.connect(g); g.connect(audioCtx.destination);
+              o.start(t + i * 0.16); o.stop(t + i * 0.16 + 0.36);
+            });
+          }catch(e){}
+        }
+        function victory(){
+          S.over = true; S.won = true; closeCmd();
+          monsterActor.classList.add("down");
+          [heroActor, sageActor, pipActor].forEach(function(a){ a.classList.remove("fallen"); a.classList.add("dancing"); });
+          playSong(true);
+          setFocus("You win! Dance party — then tap Next battle.");
+          showBanner("Victory! 🎵 Everybody dance!", "green", 2600);
+          var gained = 90 + S.streak * 10 + Math.floor(Math.random()*30);
+          S.exp += gained;
+          $("gainExp").textContent = gained;
+          $("novaExp").textContent = S.exp;
+          var next = 800 - S.exp;
+          $("novaNext").textContent = next > 0 ? next : 0;
+          $("novaXbar").style.width = Math.min(100, S.exp / 800 * 100) + "%";
+          $("gainLine").textContent = "Gained EXP and AP.";
+          $("nextBattleBtn").textContent = "Next battle";
+          setTimeout(function(){ $("results").classList.add("show"); }, 900);
+        }
+        function defeat(){
+          if(S.over) return;
+          S.over = true; S.won = false; closeCmd();
+          [heroActor, sageActor, pipActor].forEach(function(a){ a.classList.add("fallen"); });
+          monsterActor.classList.add("dancing");
+          playSong(false);
+          setFocus("The monster wins this dance. Tap Start over and try again!");
+          showBanner("Defeat… the monster dances! 💃", "", 2600);
+          $("gainLine").textContent = "The monster wins this round — start over and try again.";
+          $("gainExp").textContent = 0;
+          $("nextBattleBtn").textContent = "Start over";
+          setTimeout(function(){ $("results").classList.add("show"); }, 900);
+        }
+
+        /* ---------- ATB loop ---------- */
+        setInterval(function(){
+          if(S.over || S.busy) return;
+          if(!S.ready && S.novaHp > 0){
+            S.time = Math.min(100, S.time + 2.4);
+            if(S.time >= 100){ S.ready = true; openMainCmd(); var f = cmd.querySelector("button"); if(f) f.focus({ preventScroll:true }); }
+            $("timeBar").querySelector("i").style.width = S.time + "%";
+          }
+          if(S.poisoned && S.ready){
+            /* poison ticks while choosing — small and visible, cured by Antidote */
+            if(Math.random() < 0.10){
+              S.novaHp = Math.max(1, S.novaHp - 9);
+              dmgNum(heroActor, "POISON −9", "poison");
+              render();
+            }
+          }
+        }, 120);
+
+        /* companions auto-fight on their OWN — Nova never controls Sage or Pip */
+        var companionFlip = false;
+        setInterval(function(){
+          if(S.over || S.busy || S.monsterHp <= 0) return;
+          if(Math.random() < 0.5) return;
+          /* Sage's job first: revive or heal a hurt friend instead of attacking */
+          if(S.sageHp > 0 && (S.novaHp <= 0 || S.pipHp <= 0)){
+            if(S.novaHp <= 0) scheduleSageRevive();
+            else { S.pipHp = Math.round(S.pipMax * 0.45); showBanner("Sage revives Pip!", "green", 1400); dmgNum(pipActor, "REVIVED!", "heal"); render(); }
+            return;
+          }
+          companionFlip = !companionFlip;
+          var ally = companionFlip ? sageActor : pipActor;
+          if(companionFlip && S.sageHp <= 0) ally = pipActor;
+          if(!companionFlip && S.pipHp <= 0) ally = sageActor;
+          if((ally === sageActor && S.sageHp <= 0) || (ally === pipActor && S.pipHp <= 0)) return;
+          var dmg = 14 + Math.floor(Math.random()*16);
+          if(ally){ ally.classList.add("lunge-r"); }
+          setTimeout(function(){
+            if(ally) ally.classList.remove("lunge-r");
+            if(S.over || S.monsterHp <= 0) return;
+            S.monsterHp -= dmg;
+            hitFx(monsterActor); slashFx(monsterActor);
+            dmgNum(monsterActor, dmg, "");
+            render();
+            if(S.monsterHp <= 0) victory();
+          }, reduced ? 30 : 200);
+        }, 7000);
+
+        /* ---------- pixelization encounter ---------- */
+        var pix = $("pix");
+        (function buildPix(){
+          var cols = 26, rows = 12, frag = document.createDocumentFragment();
+          pix.style.gridTemplateColumns = "repeat(" + cols + ",1fr)";
+          var palette = ["#000000","#0a2a12","#14532d","#1e40af","#0a63e8","#f2f4f8"];
+          for(var i = 0; i < cols * rows; i++){
+            var c = document.createElement("i");
+            c.style.background = palette[Math.floor(Math.random()*palette.length)];
+            c.style.animationDelay = (Math.random() * 0.45) + "s";
+            frag.appendChild(c);
+          }
+          pix.appendChild(frag);
+        })();
+        function encounter(idx){
+          closeCmd();
+          $("results").classList.remove("show");
+          var next = (typeof idx === "number") ? idx : Math.floor(Math.random() * MONSTERS.length);
+          if(reduced){
+            resetBattle(next);
+            showBanner(S.monsterName + " appeared!", "blue", 1600);
+            return;
+          }
+          pix.classList.add("on");
+          requestAnimationFrame(function(){ pix.classList.add("go"); });
+          stage.classList.add("shake");
+          setTimeout(function(){
+            $("flash").classList.add("go");
+            resetBattle(next);
+            showBanner(S.monsterName + " appeared!", "blue", 1600);
+          }, 620);
+          setTimeout(function(){
+            pix.classList.remove("go"); pix.classList.remove("on");
+            stage.classList.remove("shake");
+            $("flash").classList.remove("go");
+          }, 1100);
+        }
+        $("encounterBtn").addEventListener("click", function(){ encounter(); });
+        $("resetBtn").addEventListener("click", function(){ resetBattle(S.monsterIdx); showBanner("Battle reset.", "blue", 1000); });
+        $("nextBattleBtn").addEventListener("click", function(){ encounter(S.won ? (S.monsterIdx + 1) % MONSTERS.length : S.monsterIdx); });
+        $("closeResultsBtn").addEventListener("click", function(){ $("results").classList.remove("show"); });
+
+        /* target arrow follows the monster while the menu is open */
+        setInterval(function(){ $("targetArrow").hidden = !(S.ready && !S.over); }, 300);
+
+        /* ---------- jobs ---------- */
+        document.querySelectorAll(".job-btn").forEach(function(b){
+          b.addEventListener("click", function(){
+            curJob = b.getAttribute("data-job");
+            document.querySelectorAll(".job-btn").forEach(function(x){ x.setAttribute("aria-pressed","false"); });
+            b.setAttribute("aria-pressed","true");
+            resetBattle(S.monsterIdx);
+            showBanner("Nova is now the " + JOBS[curJob].label + "!", "blue", 1400);
+            setFocus("New job, new stats! Wait for Nova's TIME bar.");
+          });
+        });
+
+        /* ---------- focus mode ---------- */
+        $("focusBtn").addEventListener("click", function(){
+          var on = document.body.classList.toggle("focus-calm");
+          this.textContent = "🎯 Focus mode: " + (on ? "ON" : "OFF");
+          this.setAttribute("aria-pressed", on ? "true" : "false");
+          setFocus(on ? "Focus mode on — just the fight and the box." : "Wait for Nova's TIME bar to fill.");
+        });
+
+        /* ---------- 3D Character Lab (.glb upload, Three.js) ---------- */
+        (function(){
+          var status = $("glbStatus"), preview = $("glbPreview");
+          var previewView = null;
+          function makeView(canvas){
+            var renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias:true, alpha:true });
+            renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+            var scene = new THREE.Scene();
+            var cam = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+            cam.position.set(0, 1.4, 4.2); cam.lookAt(0, 0.9, 0);
+            scene.add(new THREE.HemisphereLight(0xffffff, 0x334455, 1.1));
+            var key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(2, 4, 3); scene.add(key);
+            var holder = new THREE.Group(); scene.add(holder);
+            return { renderer:renderer, scene:scene, cam:cam, holder:holder };
+          }
+          function frame(view, w, h){
+            view.renderer.setSize(w, h, false);
+            view.cam.aspect = w / h; view.cam.updateProjectionMatrix();
+          }
+          function fitModel(view, obj){
+            var box = new THREE.Box3().setFromObject(obj);
+            var size = box.getSize(new THREE.Vector3());
+            var c = box.getCenter(new THREE.Vector3());
+            var maxDim = Math.max(size.x, size.y, size.z) || 1;
+            var sc = 1.9 / maxDim;
+            obj.scale.setScalar(sc);
+            obj.position.set(-c.x * sc, -box.min.y * sc, -c.z * sc);
+          }
+          function spin(view){
+            (function loop(){
+              requestAnimationFrame(loop);
+              view.holder.rotation.y += 0.012;
+              view.renderer.render(view.scene, view.cam);
+            })();
+          }
+          function loadSlot(file, actorEl, canvas, label){
+            if(!window.THREE || !THREE.GLTFLoader){
+              status.textContent = "The 3D library didn't load — check your connection and refresh. Your file is fine.";
+              return;
+            }
+            status.textContent = "Loading " + label + " model: " + file.name + " …";
+            var url = URL.createObjectURL(file);
+            new THREE.GLTFLoader().load(url, function(gltf){
+              /* battlefield copy */
+              var view = makeView(canvas);
+              fitModel(view, gltf.scene);
+              view.holder.add(gltf.scene);
+              frame(view, 220, 220);
+              actorEl.classList.add("has3d");
+              spin(view);
+              /* preview copy (reload so both can spin) */
+              new THREE.GLTFLoader().load(url, function(g2){
+                if(!previewView){ previewView = makeView(document.createElement("canvas")); preview.appendChild(previewView.renderer.domElement); previewView.renderer.domElement.style.width = "100%"; previewView.renderer.domElement.style.height = "210px"; frame(previewView, preview.clientWidth || 320, 210); spin(previewView); }
+                while(previewView.holder.children.length) previewView.holder.remove(previewView.holder.children[0]);
+                fitModel(previewView, g2.scene);
+                previewView.holder.add(g2.scene);
+              });
+              status.textContent = "✅ " + label + " model loaded: " + file.name + " — it's on the battlefield now. This testing-grounds copy lives in this tab only; reload brings the drawings back.";
+              setFocus(label + " is now a real 3D fighter!");
+            }, undefined, function(){
+              status.textContent = "That file couldn't be read as a 3D model. Try a .glb exported from Blender, Sketchfab, or Meshy.";
+            });
+          }
+          $("glbHero").addEventListener("change", function(){ if(this.files && this.files[0]) loadSlot(this.files[0], heroActor, $("hero3d"), "Nova"); });
+          $("glbEnemy").addEventListener("change", function(){ if(this.files && this.files[0]) loadSlot(this.files[0], monsterActor, $("monster3d"), "Enemy"); });
+        })();
+
+        resetBattle(0);
+      })();
+    </script>
+  </body>
+</html>
